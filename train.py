@@ -18,7 +18,7 @@ import util
 parser = argparse.ArgumentParser(description='',formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
 parser.add_argument('--dataset', type=str, default='cifar10', choices=['cifar10', 'cifar100', 'svhn', 'tinyimagenet'])
-parser.add_argument('--arch', type=str, default='LeNet', choices=['PreResNet18', 'wrn28_10', 'VGG19' , 'LeNet'])
+parser.add_argument('--arch', type=str, default='PreResNet18', choices=['PreResNet18', 'wrn28_10', 'VGG19' , 'LeNet'])
 parser.add_argument('--alpha', type=float, default=1)
 parser.add_argument('--zeta', type=float, default=0.5)
 parser.add_argument('--lr', type=float, default=0.1)
@@ -54,25 +54,24 @@ torch.manual_seed(opt.seed)
 
 train_loader , test_loader , num_classes , stride = getdata(opt.dataset , opt.num_workers , opt.batch_size)
 
-
-net = models.__dict__[opt.arch](num_classes, stride)
-
-net.to(device)
-cudnn.benchmark = True
-lr = opt.lr
 start_epoch = 0
+net = models.__dict__[opt.arch](num_classes, stride)
 optimizer = optim.SGD(net.parameters(), lr=opt.lr, momentum=0.9, weight_decay=opt.lr_decay)
-
 if opt.resume:
     assert os.path.isdir('checkpoint'), 'Error: no checkpoint directory found!'
 
     model_save_name = opt.dataset + '_' + opt.arch + '_alpha' + str(opt.alpha) + '_zeta' + str(opt.zeta) + '_seed' + str(opt.seed) + '.pth'
     checkpoint = torch.load('./checkpoint/' + model_save_name)
-    net = checkpoint['state_dict']
+    net.load_state_dict(checkpoint['state_dict'])
     best_acc = checkpoint['best_acc']
     start_epoch = checkpoint['epoch'] + 1
-    optimizer = checkpoint['optimizer']
+    optimizer.load_state_dict(checkpoint['optimizer'])
     opt = checkpoint['opt']
+net.to(device)
+cudnn.benchmark = True
+lr = opt.lr
+
+
 
 def checkpoint(epoch):
     state = {
